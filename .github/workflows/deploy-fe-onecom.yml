@@ -7,6 +7,9 @@ on:
 
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-and-deploy:
     name: Build and deploy FE
@@ -28,11 +31,25 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Verify build output
+      - name: Debug build output
         run: |
-          echo "Checking build output..."
+          echo "Current folder:"
+          pwd
+
+          echo ""
+          echo "Root files:"
           ls -la
-          ls -la dist
+
+          echo ""
+          echo "Dist folder:"
+          ls -la dist || echo "No dist folder found"
+
+          echo ""
+          echo "Files inside dist:"
+          find dist -maxdepth 3 -type f || echo "No files found in dist"
+
+          echo ""
+          echo "Check index.html:"
           test -f dist/index.html
 
       - name: Install lftp
@@ -47,14 +64,44 @@ jobs:
           SFTP_PASSWORD: ${{ secrets.ONE_SFTP_PASSWORD }}
           SFTP_PORT: ${{ secrets.ONE_SFTP_PORT }}
           REMOTE_DIR: ${{ secrets.ONE_REMOTE_DIR }}
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         run: |
-          lftp -u "$SFTP_USER","$SFTP_PASSWORD" -p "$SFTP_PORT" "sftp://$SFTP_HOST" <<EOF
+          set -e
+
+          echo "Remote dir from GitHub secret:"
+          echo "$REMOTE_DIR"
+
+          echo ""
+          echo "Checking local dist folder before deploy:"
+          ls -la dist
+          find dist -maxdepth 3 -type f
+
+          echo ""
+          echo "Starting SFTP deploy..."
+
+          lftp -d -u "$SFTP_USER","$SFTP_PASSWORD" -p "$SFTP_PORT" "sftp://$SFTP_HOST" <<EOF
           set sftp:auto-confirm yes
-          set ssl:verify-certificate no
+          set cmd:fail-exit yes
+          set net:timeout 20
+          set net:max-retries 2
+
+          echo "Connected to SFTP"
+          pwd
+
+          echo "Listing current remote root:"
+          ls
+
+          echo "Trying to enter remote deploy directory:"
           cd "$REMOTE_DIR"
+          pwd
+
+          echo "Listing remote deploy directory before upload:"
+          ls
+
+          echo "Starting mirror upload from dist/ to remote directory..."
           mirror --reverse --verbose dist/ .
+
+          echo "Listing remote deploy directory after upload:"
+          ls
+
           bye
           EOF
-        
-          
