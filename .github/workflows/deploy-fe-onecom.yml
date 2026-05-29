@@ -31,25 +31,8 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Debug build output
+      - name: Verify build output
         run: |
-          echo "Current folder:"
-          pwd
-
-          echo ""
-          echo "Root files:"
-          ls -la
-
-          echo ""
-          echo "Dist folder:"
-          ls -la dist || echo "No dist folder found"
-
-          echo ""
-          echo "Files inside dist:"
-          find dist -maxdepth 3 -type f || echo "No files found in dist"
-
-          echo ""
-          echo "Check index.html:"
           test -f dist/index.html
 
       - name: Install lftp
@@ -67,44 +50,14 @@ jobs:
         run: |
           set -e
 
-          echo "Remote dir from GitHub secret:"
-          echo "$REMOTE_DIR"
-
-          echo ""
-          echo "Checking local dist folder before deploy:"
-          ls -la dist
-          find dist -maxdepth 3 -type f
-
-          echo ""
-          echo "Starting SFTP deploy..."
-
-          lftp -d -u "$SFTP_USER","$SFTP_PASSWORD" -p "$SFTP_PORT" "sftp://$SFTP_HOST" <<EOF
+          lftp -u "$SFTP_USER","$SFTP_PASSWORD" -p "$SFTP_PORT" "sftp://$SFTP_HOST" <<EOF
           set sftp:auto-confirm yes
           set cmd:fail-exit yes
           set net:timeout 20
           set net:max-retries 2
 
-          echo "Connected to SFTP"
-          pwd
-
-          echo "Listing current remote root:"
-          ls
-
-          echo "Listing webroots:"
-          ls webroots
-
-          echo "Trying to enter remote deploy directory:"
           cd "$REMOTE_DIR"
-          pwd
-
-          echo "Listing remote deploy directory before upload:"
-          ls
-
-          echo "Starting mirror upload from dist/ to remote directory..."
-          mirror --reverse --verbose dist/ .
-
-          echo "Listing remote deploy directory after upload:"
-          ls
+          mirror --reverse --delete --verbose dist/ .
 
           bye
           EOF
