@@ -47,6 +47,7 @@ jobs:
           SFTP_PASSWORD: ${{ secrets.ONE_SFTP_PASSWORD }}
           SFTP_PORT: ${{ secrets.ONE_SFTP_PORT }}
           REMOTE_DIR: ${{ secrets.ONE_REMOTE_DIR }}
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         run: |
           lftp -u "$SFTP_USER","$SFTP_PASSWORD" -p "$SFTP_PORT" "sftp://$SFTP_HOST" <<EOF
           set sftp:auto-confirm yes
@@ -55,3 +56,5 @@ jobs:
           mirror --reverse --verbose dist/ .
           bye
           EOF
+        
+          
