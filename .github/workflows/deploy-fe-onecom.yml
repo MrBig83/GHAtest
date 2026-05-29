@@ -90,6 +90,9 @@ jobs:
           echo "Listing current remote root:"
           ls
 
+          echo "Listing webroots:"
+          ls webroots
+
           echo "Trying to enter remote deploy directory:"
           cd "$REMOTE_DIR"
           pwd
